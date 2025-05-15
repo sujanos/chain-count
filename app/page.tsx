@@ -3,7 +3,6 @@
 import {
   useMiniKit,
   useAddFrame,
-  useOpenUrl,
 } from "@coinbase/onchainkit/minikit";
 import {
   Name,
@@ -21,21 +20,17 @@ import {
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { Button } from "./components/DemoComponents";
 import { Icon } from "./components/DemoComponents";
-import { Home } from "./components/DemoComponents";
-import { Features } from "./components/DemoComponents";
 
 export default function App() {
   const { setFrameReady, isFrameReady, context } = useMiniKit();
   const [frameAdded, setFrameAdded] = useState(false);
-  // Counter state
+
   const [counter, setCounter] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
 
   const addFrame = useAddFrame();
-  const openUrl = useOpenUrl();
 
-  // Fetch counter on mount
   useEffect(() => {
     setInitialLoading(true);
     fetch('/api/counter')

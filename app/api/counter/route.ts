@@ -12,7 +12,7 @@ async function getRedisClient() {
 
 export const GET = async () => {
   const redis = await getRedisClient();
-  let count = await redis.get('counter');
+  const count = await redis.get('counter');
   await redis.disconnect();
   return new NextResponse(
     JSON.stringify({ count: count ? parseInt(count, 10) : 0 }),
