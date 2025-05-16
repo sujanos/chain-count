@@ -15,9 +15,13 @@ export async function getUserNotificationDetails(
     return null;
   }
 
-  return await redis.get<FrameNotificationDetails>(
-    getUserNotificationDetailsKey(fid),
-  );
+  const value = await redis.get(getUserNotificationDetailsKey(fid));
+  if (!value) return null;
+  try {
+    return JSON.parse(value) as FrameNotificationDetails;
+  } catch {
+    return null;
+  }
 }
 
 export async function setUserNotificationDetails(
@@ -28,7 +32,7 @@ export async function setUserNotificationDetails(
     return;
   }
 
-  await redis.set(getUserNotificationDetailsKey(fid), notificationDetails);
+  await redis.set(getUserNotificationDetailsKey(fid), JSON.stringify(notificationDetails));
 }
 
 export async function deleteUserNotificationDetails(

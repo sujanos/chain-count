@@ -28,27 +28,87 @@ export default function App() {
   const [counter, setCounter] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
+  const [cooldown, setCooldown] = useState(0);
+
+  useEffect(() => {
+    if (cooldown > 0) {
+      const interval = setInterval(() => {
+        setCooldown(prev => {
+          if (prev > 0) {
+            return prev - 1;
+          }
+          return 0;
+        });
+      }, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [cooldown]);
+  const [error, setError] = useState<string | null>(null);
+  const [lastIncrementer, setLastIncrementer] = useState<{ fid?: string, displayName?: string, username?: string } | null>(null);
+  const [leaderboard, setLeaderboard] = useState<Array<{ fid: string, count: number }>>([]);
 
   const addFrame = useAddFrame();
 
+  type UserInfo = {
+    fid: string;
+    displayName: string;
+    username: string;
+  }
+
+  // Helper to get user info from context
+  const getUserInfo = useCallback((): UserInfo | null => {
+    return context?.user?.fid ? {
+      fid: String(context.user.fid),
+      displayName: context.user.displayName || context.user.username || '',
+      username: context.user.username || '',
+    } : null;
+  }, [context?.user]);
+
+  // Fetch counter and related info on mount and when user changes
   useEffect(() => {
     setInitialLoading(true);
-    fetch('/api/counter')
+    setError(null);
+    const user = getUserInfo();
+    let url = '/api/counter';
+    if (user) {
+      url += `?fid=${user.fid}`;
+    }
+    fetch(url)
       .then(res => res.json())
-      .then(data => setCounter(data.count ?? 0))
+      .then(data => {
+        setCounter(data.count ?? 0);
+        setLastIncrementer(data.lastIncrementer ?? null);
+        setLeaderboard(data.leaderboard ?? []);
+        setCooldown(data.cooldown ?? 0);
+        setError(data.error ?? null);
+      })
       .finally(() => setInitialLoading(false));
-  }, []);
+  }, [context?.user?.fid, getUserInfo]);
 
   const handleIncrement = useCallback(async () => {
     setLoading(true);
+    setError(null);
+    const user = getUserInfo();
     try {
-      const res = await fetch('/api/counter', { method: 'POST' });
+      const res = await fetch('/api/counter', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(user),
+      });
       const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || 'Error incrementing counter');
+      }
       setCounter(data.count ?? 0);
+      setLastIncrementer(data.lastIncrementer ?? null);
+      setLeaderboard(data.leaderboard ?? []);
+      setCooldown(data.cooldown ?? 0);
+    } catch {
+      setError('Error incrementing counter');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [getUserInfo]);
 
   useEffect(() => {
     if (!isFrameReady) {
@@ -129,6 +189,14 @@ export default function App() {
               <>
                 <div className="text-5xl font-bold mb-2" data-testid="counter-value">{counter}</div>
                 <div className="text-[var(--app-foreground-muted)] text-sm">Total increments</div>
+                {lastIncrementer?.displayName && (
+                  <div className="mt-2 text-[var(--app-foreground-muted)] text-xs">
+                    Last incrementer: <span className="font-semibold">{lastIncrementer.displayName}</span>{lastIncrementer.username ? ` (@${lastIncrementer.username})` : ''}
+                  </div>
+                )}
+                {error && (
+                  <div className="mt-2 text-red-500 text-xs">{error}</div>
+                )}
               </>
             )}
           </div>
@@ -136,11 +204,53 @@ export default function App() {
             size="lg"
             className="text-4xl px-8 py-4 rounded-full shadow-lg bg-[var(--app-accent)] hover:bg-[var(--app-accent-hover)] text-white"
             onClick={handleIncrement}
-            disabled={loading || initialLoading}
+            disabled={
+              !context?.user?.fid ||
+              loading || initialLoading ||
+              cooldown > 0 ||
+              !!(context?.user?.fid && lastIncrementer?.fid && String(context.user.fid) === String(lastIncrementer.fid))
+            }
             icon={<Icon name="plus" size="lg" />}
           >
-            <span className="sr-only">Increment</span>
+            {cooldown > 0 ? (
+              <span className="text-base">Wait {cooldown}s</span>
+            ) : (
+              <span className="sr-only">Increment</span>
+            )}
           </Button>
+
+          {/* Share Button */}
+          <Button
+            variant="outline"
+            size="md"
+            className="mt-4"
+            onClick={() => {
+              const text = encodeURIComponent(
+                `Help me increment the Counter! ${process.env.NEXT_PUBLIC_URL}`
+              );
+              window.open(`https://warpcast.com/~/compose?text=${text}`, '_blank');
+            }}
+            icon={<Icon name="arrow-right" size="md" />}
+          >
+            Share on Farcaster
+          </Button>
+
+          {/* Leaderboard */}
+          {leaderboard && leaderboard.length > 0 && (
+            <div className="mt-8 w-full max-w-xs mx-auto bg-[var(--app-card-bg)] rounded-lg shadow p-4">
+              <div className="font-semibold mb-2 text-center text-[var(--app-accent)]">Leaderboard</div>
+              <ol className="space-y-1 text-sm">
+                {leaderboard.map((entry, idx) => (
+                  <li key={entry.fid} className="flex justify-between items-center">
+                    <span className="font-medium">#{idx + 1}</span>
+                    <span className="truncate">FID: {entry.fid}</span>
+                    <span className="ml-2 text-[var(--app-foreground-muted)]">{entry.count}</span>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )}
+
         </main>
       </div>
     </div>

@@ -1,15 +1,13 @@
-import { Redis } from "@upstash/redis";
+import { createClient } from "@redis/client";
 
-if (!process.env.REDIS_URL || !process.env.REDIS_TOKEN) {
-  console.warn(
-    "REDIS_URL or REDIS_TOKEN environment variable is not defined, please add to enable background notifications and webhooks.",
-  );
+if (!process.env.REDIS_URL) {
+  console.warn("REDIS_URL environment variable is not defined.");
 }
 
-export const redis =
-  process.env.REDIS_URL && process.env.REDIS_TOKEN
-    ? new Redis({
-        url: process.env.REDIS_URL,
-        token: process.env.REDIS_TOKEN,
-      })
-    : null;
+const client = process.env.REDIS_URL ? createClient({ url: process.env.REDIS_URL }) : null;
+
+if (client) {
+  client.connect();
+}
+
+export const redis = client;
