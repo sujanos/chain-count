@@ -4,7 +4,15 @@ import { RedisClientType } from '@redis/client';
 
 async function getLeaderboard(redis: RedisClientType) {
   const entries = await redis.zRangeWithScores('counter:leaderboard', 0, 9, { REV: true });
-  return entries.map((entry: { value: string, score: number }) => ({ fid: entry.value, count: Number(entry.score) }));
+  const leaderboard = [];
+  for (const entry of entries) {
+    const fid = entry.value;
+    const count = Number(entry.score);
+    const displayName = await redis.get(`user:${fid}:displayName`);
+    const username = await redis.get(`user:${fid}:username`);
+    leaderboard.push({ fid, count, displayName, username });
+  }
+  return leaderboard;
 }
 
 export const GET = async (req: NextRequest) => {
@@ -85,6 +93,10 @@ export const POST = async (req: NextRequest) => {
     await redis.set('counter:last_incrementer_ts', now);
     await redis.set(`counter:user:${fid}:last_increment_time`, now);
     await redis.zIncrBy('counter:leaderboard', 1, fid);
+    // Store displayName and username for leaderboard
+    if (displayName) await redis.set(`user:${fid}:displayName`, displayName);
+    if (username) await redis.set(`user:${fid}:username`, username);
+
   }
   // Get updated info
   const lastDisplayName = await redis.get('counter:last_incrementer_displayName');

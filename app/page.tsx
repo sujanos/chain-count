@@ -21,6 +21,13 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import { Button } from "./components/DemoComponents";
 import { Icon } from "./components/DemoComponents";
 
+type LeaderboardEntry = {
+  fid: string;
+  count: number;
+  displayName?: string;
+  username?: string;
+};
+
 export default function App() {
   const { setFrameReady, isFrameReady, context } = useMiniKit();
   const [frameAdded, setFrameAdded] = useState(false);
@@ -45,7 +52,7 @@ export default function App() {
   }, [cooldown]);
   const [error, setError] = useState<string | null>(null);
   const [lastIncrementer, setLastIncrementer] = useState<{ fid?: string, displayName?: string, username?: string } | null>(null);
-  const [leaderboard, setLeaderboard] = useState<Array<{ fid: string, count: number }>>([]);
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
 
   const addFrame = useAddFrame();
 
@@ -240,13 +247,15 @@ export default function App() {
             <div className="mt-8 w-full max-w-xs mx-auto bg-[var(--app-card-bg)] rounded-lg shadow p-4">
               <div className="font-semibold mb-2 text-center text-[var(--app-accent)]">Leaderboard</div>
               <ol className="space-y-1 text-sm">
-                {leaderboard.map((entry, idx) => (
+                {leaderboard.map((entry, idx) => {
+                  return (
                   <li key={entry.fid} className="flex justify-between items-center">
                     <span className="font-medium">#{idx + 1}</span>
-                    <span className="truncate">FID: {entry.fid}</span>
+                      <span className="truncate">{entry.displayName || entry.username || entry.fid}</span>
                     <span className="ml-2 text-[var(--app-foreground-muted)]">{entry.count}</span>
                   </li>
-                ))}
+                  );
+                })}
               </ol>
             </div>
           )}
