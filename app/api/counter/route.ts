@@ -71,9 +71,9 @@ export const POST = async (req: NextRequest) => {
   const now = Math.floor(Date.now() / 1000);
 
   // Check if this user is the last incrementer
-  if (fid && lastFid && String(fid) === String(lastFid)) {
-    error = 'You cannot increment twice in a row.';
-  }
+  // if (fid && lastFid && String(fid) === String(lastFid)) {
+  //   error = 'You cannot increment twice in a row.';
+  // }
   // Check cooldown (10 seconds)
   const lastUserTs = fid ? await redis.get(`counter:user:${fid}:last_increment_time`) : null;
   if (!error && lastUserTs && now - Number(lastUserTs) < 10) {

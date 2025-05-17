@@ -230,8 +230,7 @@ export default function App() {
             disabled={
               !context?.user?.fid ||
               loading || initialLoading ||
-              cooldown > 0 ||
-              !!(context?.user?.fid && lastIncrementer?.fid && String(context.user.fid) === String(lastIncrementer.fid))
+              cooldown > 0
             }
             icon={<Icon name="plus" size="lg" />}
           >
