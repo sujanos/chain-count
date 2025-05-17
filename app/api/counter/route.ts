@@ -10,7 +10,8 @@ async function getLeaderboard(redis: RedisClientType) {
     const count = Number(entry.score);
     const displayName = await redis.get(`user:${fid}:displayName`);
     const username = await redis.get(`user:${fid}:username`);
-    leaderboard.push({ fid, count, displayName, username });
+    const pfpUrl = await redis.get(`user:${fid}:pfpUrl`);
+    leaderboard.push({ fid, count, displayName, username, pfpUrl });
   }
   return leaderboard;
 }
@@ -55,14 +56,14 @@ export const POST = async (req: NextRequest) => {
   if (!redis.isOpen) await redis.connect();
   let error = null;
 
-  let body: { fid?: string; displayName?: string; username?: string };
+  let body: { fid?: string; displayName?: string; username?: string; pfpUrl?: string };
   try {
     body = await req.json();
     if (typeof body !== 'object' || body === null) throw new Error();
   } catch {
     return new NextResponse(JSON.stringify({ error: 'Invalid request body' }), { status: 400 });
   }
-  const { fid, displayName, username } = body;
+  const { fid, displayName, username, pfpUrl } = body;
 
   // Get last incrementer info
   const lastFid = await redis.get('counter:last_incrementer');
@@ -93,9 +94,10 @@ export const POST = async (req: NextRequest) => {
     await redis.set('counter:last_incrementer_ts', now);
     await redis.set(`counter:user:${fid}:last_increment_time`, now);
     await redis.zIncrBy('counter:leaderboard', 1, fid);
-    // Store displayName and username for leaderboard
-    if (displayName) await redis.set(`user:${fid}:displayName`, displayName);
-    if (username) await redis.set(`user:${fid}:username`, username);
+    // Save displayName, username, and pfpUrl for leaderboard rendering
+    await redis.set(`user:${fid}:displayName`, displayName || '');
+    await redis.set(`user:${fid}:username`, username || '');
+    await redis.set(`user:${fid}:pfpUrl`, pfpUrl || '');
 
   }
   // Get updated info

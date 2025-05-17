@@ -4,6 +4,7 @@ import {
   useMiniKit,
   useAddFrame,
 } from "@coinbase/onchainkit/minikit";
+import Image from 'next/image';
 import {
   Name,
   Identity,
@@ -26,6 +27,7 @@ type LeaderboardEntry = {
   count: number;
   displayName?: string;
   username?: string;
+  pfpUrl?: string;
 };
 
 export default function App() {
@@ -51,25 +53,27 @@ export default function App() {
     }
   }, [cooldown]);
   const [error, setError] = useState<string | null>(null);
-  const [lastIncrementer, setLastIncrementer] = useState<{ fid?: string, displayName?: string, username?: string } | null>(null);
+  const [lastIncrementer, setLastIncrementer] = useState<{ fid?: string, displayName?: string, username?: string, pfpUrl?: string } | null>(null);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
 
   const addFrame = useAddFrame();
 
   type UserInfo = {
-    fid: string;
-    displayName: string;
-    username: string;
-  }
+  fid: string;
+  displayName: string;
+  username: string;
+  pfpUrl?: string;
+}
 
   // Helper to get user info from context
   const getUserInfo = useCallback((): UserInfo | null => {
-    return context?.user?.fid ? {
-      fid: String(context.user.fid),
-      displayName: context.user.displayName || context.user.username || '',
-      username: context.user.username || '',
-    } : null;
-  }, [context?.user]);
+  return context?.user?.fid ? {
+    fid: String(context.user.fid),
+    displayName: context.user.displayName || context.user.username || '',
+    username: context.user.username || '',
+    pfpUrl: context.user.pfpUrl || '',
+  } : null;
+}, [context?.user]);
 
   // Fetch counter and related info on mount and when user changes
   useEffect(() => {
@@ -184,7 +188,7 @@ export default function App() {
           <div className="mb-8 text-center">
             {context?.user?.displayName && (
               <div className="text-lg font-semibold mb-4 text-[var(--app-foreground-muted)]">
-                {context.user.displayName}
+                Hey {context.user.displayName}, time to increment!
               </div>
             )}
             {initialLoading ? (
@@ -197,7 +201,19 @@ export default function App() {
                 <div className="text-5xl font-bold mb-2" data-testid="counter-value">{counter}</div>
                 <div className="text-[var(--app-foreground-muted)] text-sm">Total increments</div>
                 {lastIncrementer?.displayName && (
-                  <div className="mt-2 text-[var(--app-foreground-muted)] text-xs">
+                  <div className="mt-2 text-[var(--app-foreground-muted)] text-xs flex items-center gap-2">
+                    {lastIncrementer.pfpUrl ? (
+                      <Image
+                        src={lastIncrementer.pfpUrl}
+                        alt={lastIncrementer.displayName || lastIncrementer.username || lastIncrementer.fid || ''}
+                        width={24}
+                        height={24}
+                        className="w-6 h-6 rounded-full object-cover"
+                        unoptimized
+                      />
+                    ) : (
+                      <span className="w-6 h-6 rounded-full bg-gray-300 flex items-center justify-center text-xs">?</span>
+                    )}
                     Last incrementer: <span className="font-semibold">{lastIncrementer.displayName}</span>{lastIncrementer.username ? ` (@${lastIncrementer.username})` : ''}
                   </div>
                 )}
@@ -249,11 +265,25 @@ export default function App() {
               <ol className="space-y-1 text-sm">
                 {leaderboard.map((entry, idx) => {
                   return (
-                  <li key={entry.fid} className="flex justify-between items-center">
-                    <span className="font-medium">#{idx + 1}</span>
-                      <span className="truncate">{entry.displayName || entry.username || entry.fid}</span>
-                    <span className="ml-2 text-[var(--app-foreground-muted)]">{entry.count}</span>
-                  </li>
+                    <li key={entry.fid} className="flex justify-between items-center">
+                      <span className="font-medium">#{idx + 1}</span>
+                      <span className="flex items-center gap-2 truncate">
+                        {entry.pfpUrl ? (
+                          <Image
+                            src={entry.pfpUrl}
+                            alt={entry.displayName || entry.username || entry.fid}
+                            width={24}
+                            height={24}
+                            className="w-6 h-6 rounded-full object-cover"
+                            unoptimized
+                          />
+                        ) : (
+                          <span className="w-6 h-6 rounded-full bg-gray-300 flex items-center justify-center text-xs">?</span>
+                        )}
+                        {entry.displayName || entry.username || entry.fid}
+                      </span>
+                      <span className="ml-2 text-[var(--app-foreground-muted)]">{entry.count}</span>
+                    </li>
                   );
                 })}
               </ol>
