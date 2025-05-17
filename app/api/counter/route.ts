@@ -34,7 +34,7 @@ export const GET = async (req: NextRequest) => {
   if (fid) {
     const lastUserTs = await redis.get(`counter:user:${fid}:last_increment_time`);
     if (lastUserTs) {
-      cooldown = Math.max(0, 60 - Math.floor((Date.now() / 1000) - Number(lastUserTs)));
+      cooldown = Math.max(0, 10 - Math.floor((Date.now() / 1000) - Number(lastUserTs)));
     }
   }
 
@@ -104,7 +104,7 @@ export const POST = async (req: NextRequest) => {
   const lastDisplayName = await redis.get('counter:last_incrementer_displayName');
   const lastUsername = await redis.get('counter:last_incrementer_username');
   const leaderboard = await getLeaderboard(redis);
-  const cooldown = fid ? Math.max(0, 60 - (now - Number(await redis.get(`counter:user:${fid}:last_increment_time`) || 0))) : 0;
+  const cooldown = fid ? Math.max(0, 10 - (now - Number(await redis.get(`counter:user:${fid}:last_increment_time`) || 0))) : 0;
 
   return new NextResponse(
     JSON.stringify({
